@@ -1,0 +1,125 @@
+html, body {
+  background-color: #0b0420;
+  color: #fff;
+  background-image: url(../images/bg.png);
+  background-position: top right;
+  background-repeat: no-repeat;
+  background-size: 300px 300px;
+}
+
+.logo {
+  font-size: 20pt;
+  font-family: 'Julius Sans One', sans-serif;
+}
+
+.logo img {
+  width: 50px;
+  height: 50px;
+}
+
+.small-logo {
+  width: 25px;
+  height: 25px;
+}
+
+.top-bar, .top-bar ul {
+  background: none;
+  color: #fff;
+}
+
+a {
+  color: #fff;
+}
+
+a:hover {
+  color: #ddd;
+}
+
+h1 {
+  font-family: 'Julius Sans One', sans-serif;
+}
+
+h3 {
+  font-family: 'Julius Sans One', sans-serif;
+}
+
+.fullwidth {
+  width: 100%;
+  background: #fff;
+  color: #00aeff;
+}
+
+.footer {
+  margin-top: 50px;
+  margin-bottom: 50px;
+}
+
+.footer > div {
+  margin-top: 2em;
+}
+
+.white-button {
+  background: #fff;
+  color: #0b0420;
+}
+
+.white-button.hollow {
+  border-color: #fff;
+  color: #fff;
+}
+
+.white-button:hover {
+  background: #ddd;
+  color: #0b0420;
+}
+
+.white-button.hollow:hover {
+  border-color: #ddd;
+  color: #ddd;
+}
+
+.dark-button {
+  background: #0b0420;
+  color: #fff;
+}
+
+.dark-button:hover {
+  background: #515c6f;
+}
+
+.split-to-white {
+  background: #fff;
+  margin-top: 50px;
+  color: #000 !important;
+}
+
+.centered {
+  text-align: center;
+}
+
+.split-to-white:after, .split-to-white:before {
+  background: #fff;
+  content: '';
+  display: block;
+  width: 100%;
+  height: 50px;
+  transform-origin: 100%;
+  z-index: -1;
+  transform: skewY(-1.5deg);
+}
+
+.split-to-white:before {
+  transform-origin: 0%;
+}
+
+.code {
+  color: #fff;
+  background: #515c6f;
+  padding: 10pt;
+  font-family: monospace;
+}
+
+.spacelift {
+  max-width: 350px;
+  max-height: 350px;
+}

@@ -1,8 +1,120 @@
-<!DOCTYPE html>
-<html>
+<!doctype html>
+<html class="no-js" lang="en" dir="ltr">
   <head>
+    <meta charset="utf-8">
+    <meta http-equiv="x-ua-compatible" content="ie=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Spacelift</title>
+    <link rel="shortcut icon" href="favicon.png"> 
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/foundation/6.3.0/css/foundation.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/foundicons/3.0.0/foundation-icons.min.css">
+    <link href="https://fonts.googleapis.com/css?family=Julius+Sans+One" rel="stylesheet">
+    <link rel="stylesheet" href="assets/css/app.css">
   </head>
   <body>
+    <div class="top-bar">
+      <div class="top-bar-left">
+        <ul class="menu">
+          <li class="menu-text logo"><a href="/"><img src="assets/images/logo.png" alt="Spacelift" title="Spacelift" />Spacelift</a></li>
+        </ul>
+      </div>
+      <div class="top-bar-right">
+      </div>
+    </div>
+    <div class="row">
+      <div class="large-4 show-for-medium medium-5 columns">
+        <img src="assets/images/spacelift.png" class="spacelift" alt="Spacelift" title="Spacelift"/>
+      </div>
+      <div class="large-8 medium-7 small-12 columns">
+        <h1>Lift Off.</h1>
+        <h3>Spacelift is a lightweight Scala framework for rapid creation of highly-scalable, message queue-backed actors, with publicly-exposed REST APIs.</h3>
+	<a href="#" class="button white-button">Download Spacelift v1.0.0</a><a href="https://github.com/drheart/spacelift" class="hollow button white-button">View the GitHub project</a>
+      </div>
+    </div>
+    <div class="split-to-white">
+      <div class="row">
+        <div class="large-10 large-offset-1 columns">
+          <h1 class="centered">Getting Started at The Speed of Light</h1>
+          <p>Toss the following into your project's dependencies:</p>
+          <div class="row">
+            <div class="large-10 large-offset-1 columns code">
+              libraryDependencies += "space.spacelift" %% "spacelift" % "1.0.0"
+            </div>
+          </div><br/>
+          <p>Define your actors and messages as normal:</p>
+          <div class="row">
+            <div class="large-10 large-offset-1 columns code">
+              case class SomeMessage()<br/>
+              case class SomeOtherKindOfMessage(name: String, value: String)<br/>
+              case class SomeResponse(responseData: String)<br/>
+              case class AnotherResponse(responseData: String, isEqual: Boolean)<br/><br/>
+              class Foo extends Actor {<br/>
+              &nbsp;&nbsp;def receive: Actor.Receive = {<br/>
+              &nbsp;&nbsp;&nbsp;&nbsp;case msg: SomeMessage => {<br/>
+              &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// handler logic goes here...<br/>
+              &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;sender ! SomeResponse("foobar")<br/>
+              &nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+              &nbsp;&nbsp;&nbsp;&nbsp;case otherMsg: SomeOtherKindOfMessage => {<br/>
+              &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// handler logic goes here...<br/>
+              &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;otherActorRef ! AnotherResponse("foobar", otherMsg.name == otherMsg.value)<br/>
+              &nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+              &nbsp;&nbsp;}<br/>
+              } 
+            </div>
+          </div><br/>
+          <p>Import Spacelift when creating your Actors to be exposed by REST, and use its extension method:</p>
+          <div class="row">
+            <div class="large-10 large-offset-1 columns code">
+              import space.spacelift.actors._<br/><br/>
+              // ...<br/><br/>
+              val actorSystem = ActorSystem("system")<br/>
+              actorSystem.restfulActorOf(Props[Foo], "foo") // Exposes actor at /foo
+            </div>
+          </div><br/>
+          <p>Roll in some configuration info in your application.conf:</p>
+          <div class="row">
+            <div class="large-10 large-offset-1 columns code">
+              spacelift {<br/>
+              &nbsp;&nbsp;queue {<br/>
+              &nbsp;&nbsp;&nbsp;&nbsp;provider="rabbitmq"<br/>
+              &nbsp;&nbsp;&nbsp;&nbsp;secure=true<br/>
+              &nbsp;&nbsp;&nbsp;&nbsp;host="some.host.com"<br/>
+              &nbsp;&nbsp;&nbsp;&nbsp;port=5671<br/>
+              &nbsp;&nbsp;&nbsp;&nbsp;username="username"<br/>
+              &nbsp;&nbsp;&nbsp;&nbsp;password="password"<br/>
+              &nbsp;&nbsp;}<br/>
+              }
+            </div>
+          </div><br/>
+          <p>Run your application, and make a request against your new endpoint:</p>
+          <div class="row">
+            <div class="large-10 large-offset-1 columns code">
+              $ curl -X GET -H "Accept: application/json" http://localhost:9000/foo/msg<br/><br/>
+              > { "responseData" : "foobar" } 
+            </div>
+          </div><br/><br/>
+          <h3> Is it really that simple?</h3>
+          There's only one way to find out.
+          <div class="centered"><a href="#" class="button dark-button"><i class="fi-page-doc"></i> View Documentation</a></div>
+        </div>
+      </div>
+    </div>
+    <div class="row footer">
+      <div class="large-3 large-offset-1 columns">
+        <div class="logo"><img src="assets/images/logo.png" alt="Spacelift" title="Spacelift" class="small-logo">Spacelift</div><br/>
+        Made with ♥ in Seattle, WA
+      </div>
+      <div class="large-3 columns">
+        <a href="https://github.com/drheart/spacelift"><i class="fi-social-github"></i> spacelift</a><br/>
+        <a href="https://twitter.com/doctorlessthan3"><i class="fi-social-twitter"></i> doctorlessthan3</a> 
+      </div>
+      <div class="large-4 columns end">
+         Spacelift is a framework for rapid REST API creation, as a wrapper around distributed message-bound actors.
+      </div>
+    </div>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/2.2.4/jquery.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/what-input/4.0.4/what-input.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/foundation/6.3.0/js/foundation.min.js"></script>
+    <script src="assets/js/app.js"></script>
   </body>
 </html>
