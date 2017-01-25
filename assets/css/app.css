@@ -4,7 +4,7 @@ html, body {
   background-image: url(../images/bg.png);
   background-position: top right;
   background-repeat: no-repeat;
-  background-size: 300px 300px;
+  background-size: 100% 30%;
 }
 
 .logo {
@@ -35,12 +35,9 @@ a:hover {
   color: #ddd;
 }
 
-h1 {
+h1, h2, h3, .button {
   font-family: 'Julius Sans One', sans-serif;
-}
-
-h3 {
-  font-family: 'Julius Sans One', sans-serif;
+  font-weight: bold;
 }
 
 .fullwidth {
@@ -122,4 +119,10 @@ h3 {
 .spacelift {
   max-width: 350px;
   max-height: 350px;
+}
+
+.top-bar-right li {
+  font-family: 'Julius Sans One', sans-serif;
+  font-weight: bold;
+  line-height: 94px !important;
 }
