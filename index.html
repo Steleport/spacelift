@@ -43,7 +43,7 @@
           <p>Toss the following into your project's dependencies:</p>
           <div class="row">
             <div class="large-10 large-offset-1 columns code">
-              libraryDependencies += "space.spacelift" %% "spacelift" % "1.0.0-SNAPSHOT"
+              libraryDependencies += "space.spacelift" %% "spacelift" % "0.1.0-SNAPSHOT"
             </div>
           </div><br/>
           <p>Define your actors and messages as normal:</p>
@@ -67,26 +67,28 @@
               } 
             </div>
           </div><br/>
-          <p>Import Spacelift when creating your Actors to be exposed by REST, and use its extension method:</p>
+          <p>Inject Spacelift when creating your Actors to be exposed by REST, and use its extension method:</p>
           <div class="row">
             <div class="large-10 large-offset-1 columns code">
-              import space.spacelift.actors._<br/><br/>
-              // ...<br/><br/>
-              val actorSystem = ActorSystem("system")<br/>
-              actorSystem.restfulActorOf(Props[Foo], "foo") // Exposes actor at /foo
+              class SomeClassThatSetsUpActors @Inject() (restfulActorSystem: RestfulActorSystem) {<br/>
+              &nbsp;&nbsp;import restfulActorSystem._<br/><br/>
+              &nbsp;&nbsp;// ...<br/><br/>
+              &nbsp;&nbsp;val actorSystem = ActorSystem("system")<br/>
+              &nbsp;&nbsp;actorSystem.restfulActorOf(Props[Foo], "foo") // Exposes actor at /foo<br/><br/>
+              &nbsp;&nbsp;restfulActorSystem.startServer<br/>
+              } 
             </div>
           </div><br/>
           <p>Roll in some configuration info in your application.conf:</p>
           <div class="row">
             <div class="large-10 large-offset-1 columns code">
               spacelift {<br/>
-              &nbsp;&nbsp;queue {<br/>
-              &nbsp;&nbsp;&nbsp;&nbsp;provider="rabbitmq"<br/>
-              &nbsp;&nbsp;&nbsp;&nbsp;secure=true<br/>
-              &nbsp;&nbsp;&nbsp;&nbsp;host="some.host.com"<br/>
-              &nbsp;&nbsp;&nbsp;&nbsp;port=5671<br/>
-              &nbsp;&nbsp;&nbsp;&nbsp;username="username"<br/>
-              &nbsp;&nbsp;&nbsp;&nbsp;password="password"<br/>
+              &nbsp;&nbsp;amqp {<br/>
+              &nbsp;&nbsp;&nbsp;&nbsp;host="localhost"<br/>
+              &nbsp;&nbsp;&nbsp;&nbsp;vhost="/"<br/>
+              &nbsp;&nbsp;&nbsp;&nbsp;port=5672<br/>
+              &nbsp;&nbsp;&nbsp;&nbsp;username="guest"<br/>
+              &nbsp;&nbsp;&nbsp;&nbsp;password="guest"<br/>
               &nbsp;&nbsp;}<br/>
               }
             </div>
