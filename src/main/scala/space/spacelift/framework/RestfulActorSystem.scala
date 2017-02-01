@@ -106,16 +106,16 @@ class RestfulActorSystem @Inject() (proxiedActorSystem: ProxiedActorSystem) {
 
   object RestfulClient {
     /**
-      * Defines a ProxyClient with a default serializer
+      * Defines a RestfulClient
       *
       * @param client The RPC Client
-      * @return Props containing the ProxyClient
+      * @return Props containing the RestfulClient
       */
     def props(client: ActorRef): Props = Props(new RestfulClient(client))
   }
 
   /**
-    * standard  one-request/one response proxy, with forwarded serialization info, which allows to write (myActor ? MyRequest).mapTo[MyResponse]
+    * Implementation of the ProxyClient which allows for control of serialization.
     *
     * @param client RPC Client
     */
