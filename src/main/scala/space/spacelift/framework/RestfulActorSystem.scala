@@ -64,53 +64,58 @@ class RestfulActorSystem @Inject() (proxiedActorSystem: ProxiedActorSystem) {
     */
   def startServer(implicit system: ActorSystem) = {
     val list = this.getClass.getClassLoader.getResources("").asScala.flatMap(p => loadClassList(new File(p.getPath), new File(p.getPath))).toList
-    println(list)
 
     implicit val materializer = ActorMaterializer()
     implicit val executionContext = system.dispatcher
 
     val routes: Flow[HttpRequest, HttpResponse, NotUsed] = Flow[HttpRequest].map { req =>
-      val key = req.uri.path.toString.split("/").drop(1).head
-      if (actorMap.contains(key)) {
-        if (!classMap.contains(key)) {
-          classMap.put(key, list.filter(c => try {
-            actorMap(key)._2.isDefinedAt(this.getClass.getClassLoader.loadClass(c).newInstance())
-          } catch {
-            case _ => false
-          }))
-        }
+      val paths = req.uri.path.toString.split("/")
 
-        implicit val timeout: Timeout = 30 seconds
-        val msgKey = req.uri.path.toString.split("/").drop(2).head
-        println(msgKey)
+      paths.length match {
+        case 0 => HttpResponse(StatusCodes.NotFound, entity = HttpEntity("Not Found"))
+        case 1 => HttpResponse(StatusCodes.NotFound, entity = HttpEntity("Not Found"))
+        case _ => {
+          val key = paths(1)
+          if (actorMap.contains(key)) {
+            if (!classMap.contains(key)) {
+              classMap.put(key, list.filter(c => try {
+                actorMap(key)._2.isDefinedAt(this.getClass.getClassLoader.loadClass(c).newInstance())
+              } catch {
+                case _ => false
+              }))
+            }
 
-        val contentType = (if (req.method.value == "GET") {
-          println(req.headers)
-          req.headers.find(_.is("accept"))
-        } else {
-          req.headers.find(_.is("content-type"))
-        }).map(_.value).getOrElse("application/json")
+            implicit val timeout: Timeout = 30 seconds
+            val msgKey = paths(2)
 
-        classMap(key).find(_.split("\\.").last.equals(msgKey)) match {
-          case Some(className) => Await.result(req.entity.toStrict(30 seconds).flatMap { s =>
-            (actorMap(key)._1 ? Delivery(
-              s.data.toArray,
-              MessageProperties(
-                className,
-                contentType
+            val contentType = (if (req.method.value == "GET") {
+              req.headers.find(_.is("accept"))
+            } else {
+              req.headers.find(_.is("content-type"))
+            }).map(_.value).getOrElse("application/json")
+
+            classMap(key).find(_.split("\\.").last.equals(msgKey)) match {
+              case Some(className) => Await.result(req.entity.toStrict(30 seconds).flatMap { s =>
+                (actorMap(key)._1 ? Delivery(
+                  s.data.toArray,
+                  MessageProperties(
+                    className,
+                    contentType
+                  )
+                )).mapTo[HttpResponse]
+              }, 30 seconds)
+              case None => HttpResponse(
+                StatusCodes.NotFound,
+                entity = HttpEntity(
+                  ContentType.parse(contentType).right.get,
+                  Serializers.contentTypeToSerializer(contentType).toBinary(ServerError("Could not find a matching class"))
+                )
               )
-            )).mapTo[HttpResponse]
-          }, 30 seconds)
-          case None => HttpResponse(
-            StatusCodes.NotFound,
-            entity = HttpEntity(
-              ContentType.parse(contentType).right.get,
-              Serializers.contentTypeToSerializer(contentType).toBinary(ServerError("Could not find a matching class"))
-            )
-          )
+            }
+          } else {
+            HttpResponse(StatusCodes.NotFound, entity = HttpEntity("Not Found"))
+          }
         }
-      } else {
-        HttpResponse(StatusCodes.NotFound, entity = HttpEntity("Not Found"))
       }
     }
 
