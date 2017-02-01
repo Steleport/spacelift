@@ -13,17 +13,15 @@ import akka.http.scaladsl.Http
 import akka.http.scaladsl.model._
 import akka.pattern.{ask, pipe}
 import akka.stream.ActorMaterializer
-import akka.stream.scaladsl.{Flow, Sink, Source}
+import akka.stream.scaladsl.Flow
 import akka.testkit.TestActorRef
-import akka.util.{ByteString, Timeout}
-import space.spacelift.mq.proxy.Proxy.ServerFailure
+import akka.util.Timeout
 import space.spacelift.mq.proxy.patterns.RpcClient
-import space.spacelift.mq.proxy.serializers.{JsonSerializer, Serializers}
+import space.spacelift.mq.proxy.serializers.Serializers
 
 import scala.collection.JavaConverters._
-import scala.concurrent.{Await, ExecutionContext}
+import scala.concurrent.Await
 import scala.concurrent.duration._
-import scala.util.{Failure, Success, Try}
 
 @Singleton
 class RestfulActorSystem @Inject() (proxiedActorSystem: ProxiedActorSystem) {
@@ -54,6 +52,11 @@ class RestfulActorSystem @Inject() (proxiedActorSystem: ProxiedActorSystem) {
     }
   }
 
+  /**
+    * Starts the REST server using all actors created through the extension method [[RestfulActorOf.restfulActorOf]].
+    *
+    * @param system
+    */
   def startServer(implicit system: ActorSystem) = {
     val list = this.getClass.getClassLoader.getResources("").asScala.flatMap(p => loadClassList(new File(p.getPath), new File(p.getPath))).toList
     println(list)
