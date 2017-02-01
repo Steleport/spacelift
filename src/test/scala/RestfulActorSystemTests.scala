@@ -26,9 +26,13 @@ class RestfulActorSystemTests extends TestKit(ActorSystem("TestSystem")) with Wo
 
   "RestfulActorSystem" should {
     "create and respond to requests" in {
-      val ras = new RestfulActorSystem(new ProxiedActorSystem(new AmqpConnectionWrapper(system.settings.config)))
-      import ras._
+      val pas = new ProxiedActorSystem(new AmqpConnectionWrapper(system.settings.config))
+      val ras = new RestfulActorSystem(pas)
 
+      import ras._
+      import pas._
+
+      system.rpcServerActorOf(Props[TestActor], "foo")
       system.restfulActorOf(Props[TestActor], "foo")
 
       ras.startServer

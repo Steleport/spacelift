@@ -98,7 +98,6 @@ class RestfulActorSystem @Inject() (proxiedActorSystem: ProxiedActorSystem) {
 
   implicit class RestfulActorOf(system: ActorSystem) {
     def restfulActorOf(props: Props, name: String): ActorRef = {
-      val server = system.rpcServerActorOf(props, name)
       val client = system.rpcClientActorOf(props, name, new RestfulClient(_))
 
       actorMap.put(name, (client, TestActorRef(props)(system).underlyingActor.receive))
