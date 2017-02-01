@@ -5,21 +5,25 @@ import java.util.concurrent.ConcurrentHashMap
 import java.util.jar.JarFile
 
 import akka.actor._
-import space.spacelift.mq.proxy.ProxiedActorSystem
+import space.spacelift.mq.proxy._
 import javax.inject._
 
 import akka.NotUsed
 import akka.http.scaladsl.Http
 import akka.http.scaladsl.model._
-import akka.pattern.ask
+import akka.pattern.{ask, pipe}
 import akka.stream.ActorMaterializer
-import akka.stream.scaladsl.Flow
+import akka.stream.scaladsl.{Flow, Sink, Source}
 import akka.testkit.TestActorRef
-import akka.util.Timeout
+import akka.util.{ByteString, Timeout}
+import space.spacelift.mq.proxy.Proxy.ServerFailure
+import space.spacelift.mq.proxy.patterns.RpcClient
+import space.spacelift.mq.proxy.serializers.{JsonSerializer, Serializers}
 
 import scala.collection.JavaConverters._
-import scala.concurrent.Await
+import scala.concurrent.{Await, ExecutionContext}
 import scala.concurrent.duration._
+import scala.util.{Failure, Success, Try}
 
 @Singleton
 class RestfulActorSystem @Inject() (proxiedActorSystem: ProxiedActorSystem) {
@@ -54,6 +58,9 @@ class RestfulActorSystem @Inject() (proxiedActorSystem: ProxiedActorSystem) {
     val list = this.getClass.getClassLoader.getResources("").asScala.flatMap(p => loadClassList(new File(p.getPath), new File(p.getPath))).toList
     println(list)
 
+    implicit val materializer = ActorMaterializer()
+    implicit val executionContext = system.dispatcher
+
     val routes: Flow[HttpRequest, HttpResponse, NotUsed] = Flow[HttpRequest].map { req =>
       val key = req.uri.path.toString.split("/").drop(1).head
       if (actorMap.contains(key)) {
@@ -68,16 +75,20 @@ class RestfulActorSystem @Inject() (proxiedActorSystem: ProxiedActorSystem) {
         implicit val timeout: Timeout = 30 seconds
         val msgKey = req.uri.path.toString.split("/").drop(2).head
         println(msgKey)
-        val msg = this.getClass.getClassLoader.loadClass(classMap(key).filter(_.split("\\.").last.equals(msgKey)).head).newInstance()
 
-        HttpResponse(StatusCodes.OK, entity = HttpEntity(Await.result(actorMap(key)._1 ? msg, 30 seconds).asInstanceOf[String]))
+        Await.result(req.entity.toStrict(30 seconds).flatMap { s =>
+          (actorMap(key)._1 ? Delivery(
+            s.data.toArray,
+            MessageProperties(
+              classMap(key).filter(_.split("\\.").last.equals(msgKey)).head,
+              req.entity.contentType.mediaType.value
+            )
+          )).mapTo[HttpResponse]
+        }, 30 seconds)
       } else {
-        HttpResponse(StatusCodes.OK)
+        HttpResponse(StatusCodes.NotFound, entity = HttpEntity("Not Found"))
       }
     }
-
-    implicit val materializer = ActorMaterializer()
-    implicit val executionContext = system.dispatcher
 
     val bindingFuture = Http().bindAndHandle(routes, "localhost", 8080)
   }
@@ -85,11 +96,58 @@ class RestfulActorSystem @Inject() (proxiedActorSystem: ProxiedActorSystem) {
   implicit class RestfulActorOf(system: ActorSystem) {
     def restfulActorOf(props: Props, name: String): ActorRef = {
       val server = system.rpcServerActorOf(props, name)
-      val client = system.rpcClientActorOf(props, name)
+      val client = system.rpcClientActorOf(props, name, new RestfulClient(_))
 
       actorMap.put(name, (client, TestActorRef(props)(system).underlyingActor.receive))
 
-      server
+      client
+    }
+  }
+
+  object RestfulClient {
+    /**
+      * Defines a ProxyClient with a default serializer
+      *
+      * @param client The RPC Client
+      * @return Props containing the ProxyClient
+      */
+    def props(client: ActorRef): Props = Props(new RestfulClient(client))
+  }
+
+  /**
+    * standard  one-request/one response proxy, with forwarded serialization info, which allows to write (myActor ? MyRequest).mapTo[MyResponse]
+    *
+    * @param client RPC Client
+    */
+  class RestfulClient(client: ActorRef, timeout: Timeout = 30 seconds) extends Actor with ActorLogging {
+
+    import scala.concurrent.ExecutionContext.Implicits.global
+
+    def receive: Actor.Receive = {
+      case request: Delivery => {
+        log.info("Received request for delivery")
+        val future = (client ? RpcClient.Request(request :: Nil, 1))(timeout).mapTo[AnyRef].map {
+          case result: RpcClient.Response => {
+            log.info("Got result: " + result.toString)
+            HttpResponse(
+              StatusCodes.OK,
+              entity = HttpEntity(
+                ContentType.parse(request.properties.contentType).right.get,
+                result.deliveries.head.body
+              )
+            )
+          }
+          case undelivered: RpcClient.Undelivered => HttpResponse(
+            StatusCodes.ServiceUnavailable,
+            entity = HttpEntity(
+              ContentType.parse(request.properties.contentType).right.get,
+              Serializers.contentTypeToSerializer(request.properties.contentType).toBinary(undelivered)
+            )
+          )
+        }
+
+        future.pipeTo(sender)
+      }
     }
   }
 }
