@@ -16,12 +16,17 @@ import akka.stream.ActorMaterializer
 import akka.stream.scaladsl.Flow
 import akka.testkit.TestActorRef
 import akka.util.Timeout
+import space.spacelift.framework.RestfulActorSystem.ServerError
 import space.spacelift.mq.proxy.patterns.RpcClient
 import space.spacelift.mq.proxy.serializers.Serializers
 
 import scala.collection.JavaConverters._
 import scala.concurrent.Await
 import scala.concurrent.duration._
+
+object RestfulActorSystem {
+  case class ServerError(msg: String)
+}
 
 @Singleton
 class RestfulActorSystem @Inject() (proxiedActorSystem: ProxiedActorSystem) {
@@ -79,19 +84,31 @@ class RestfulActorSystem @Inject() (proxiedActorSystem: ProxiedActorSystem) {
         val msgKey = req.uri.path.toString.split("/").drop(2).head
         println(msgKey)
 
-        Await.result(req.entity.toStrict(30 seconds).flatMap { s =>
-          (actorMap(key)._1 ? Delivery(
-            s.data.toArray,
-            MessageProperties(
-              classMap(key).filter(_.split("\\.").last.equals(msgKey)).head,
-              (if (req.method.value == "GET") {
-                req.headers.find(_.is("Accept"))
-              } else {
-                req.headers.find(_.is("Content-Type"))
-              }).map(_.value).getOrElse("application/json")
+        val contentType = (if (req.method.value == "GET") {
+          println(req.headers)
+          req.headers.find(_.is("accept"))
+        } else {
+          req.headers.find(_.is("content-type"))
+        }).map(_.value).getOrElse("application/json")
+
+        classMap(key).find(_.split("\\.").last.equals(msgKey)) match {
+          case Some(className) => Await.result(req.entity.toStrict(30 seconds).flatMap { s =>
+            (actorMap(key)._1 ? Delivery(
+              s.data.toArray,
+              MessageProperties(
+                className,
+                contentType
+              )
+            )).mapTo[HttpResponse]
+          }, 30 seconds)
+          case None => HttpResponse(
+            StatusCodes.NotFound,
+            entity = HttpEntity(
+              ContentType.parse(contentType).right.get,
+              Serializers.contentTypeToSerializer(contentType).toBinary(ServerError("Could not find a matching class"))
             )
-          )).mapTo[HttpResponse]
-        }, 30 seconds)
+          )
+        }
       } else {
         HttpResponse(StatusCodes.NotFound, entity = HttpEntity("Not Found"))
       }
