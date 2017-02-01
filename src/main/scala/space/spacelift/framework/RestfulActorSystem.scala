@@ -84,7 +84,11 @@ class RestfulActorSystem @Inject() (proxiedActorSystem: ProxiedActorSystem) {
             s.data.toArray,
             MessageProperties(
               classMap(key).filter(_.split("\\.").last.equals(msgKey)).head,
-              req.entity.contentType.mediaType.value
+              (if (req.method.value == "GET") {
+                req.headers.find(_.is("Accept"))
+              } else {
+                req.headers.find(_.is("Content-Type"))
+              }).map(_.value).getOrElse("application/json")
             )
           )).mapTo[HttpResponse]
         }, 30 seconds)
@@ -97,6 +101,13 @@ class RestfulActorSystem @Inject() (proxiedActorSystem: ProxiedActorSystem) {
   }
 
   implicit class RestfulActorOf(system: ActorSystem) {
+    /**
+      * Creates an RPC Client actor and maps it to the service map to create the REST endpoints when [[startServer]] is run.
+      *
+      * @param props
+      * @param name The name of the REST endpoint
+      * @return The RPC client instance the REST service envelops
+      */
     def restfulActorOf(props: Props, name: String): ActorRef = {
       val client = system.rpcClientActorOf(props, name, new RestfulClient(_))
 
